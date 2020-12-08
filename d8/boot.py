@@ -9,8 +9,10 @@ def run(operations):
     finished = False
 
     while not finished:
-        if position in previous_operations or not 0 <= position < len(operations):
+        if position == len(operations):
             finished = True
+        elif position in previous_operations:
+            return -1
         else:
             previous_operations.add(position)
             operation, argument = operations[position]
@@ -26,15 +28,38 @@ def run(operations):
     return accumulator
 
 
+def check(operations):
+    finished = False
+    position = 0
+    while not finished:
+        if operations[position][0] == "acc":
+            position += 1
+            continue
+
+        operations[position][0] = "nop" if operations[position][0] == "jmp" else "jmp"
+
+        accumulator = run(operations)
+
+        if accumulator != -1:
+            finished = True
+
+        operations[position][0] = "nop" if operations[position][0] == "jmp" else "jmp"
+
+        position += 1
+
+    return accumulator
+
+
 def main(boot_file_path):
     with open(boot_file_path) as boot_file:
         operations = []
 
         for line in boot_file:
             operation, argument = line.split()
-            operations.append((operation, int(argument)))
+            operations.append([operation, int(argument)])
 
-    accumulator = run(operations)
+    accumulator = check(operations)
+
     print(f"Accumulator: {accumulator}")
 
 
