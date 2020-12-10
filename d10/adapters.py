@@ -1,26 +1,37 @@
 import sys
+from math import prod, comb
+
+d = {
+    1: 2,
+    2: 4,
+    3: 1 + 3 + 3,
+}
 
 
 def count_arrangements(adapters):
     arrangements_count = 0
 
-    arrangements = [(adapters, 1)]
+    arrangements = []
 
-    while arrangements:
-        arrangements_count += len(arrangements)
-        new_arrangements = []
-        for arrangement, start_index in arrangements:
-            for current_index in range(start_index, len(arrangement) - 1):
-                if arrangement[current_index + 1] - arrangement[current_index - 1] <= 3:
-                    new_arrangements.append(
-                        (
-                            arrangement[:current_index]
-                            + arrangement[current_index + 1 :],
-                            current_index,
-                        )
-                    )
+    current_count = -1
+    index = 0
+    while index < len(adapters) - 1:
+        difference = adapters[index + 1] - adapters[index]
+        if difference == 3:
+            if current_count > 0:
+                arrangements.append(
+                    d[current_count]
+                )  # comb(current_count + 1, current_count)) TODO???
+            current_count = -1
+        elif difference == 1:
+            current_count += 1
 
-        arrangements = new_arrangements
+        index += 1
+
+    if current_count > 0:
+        arrangements.append(d[current_count])
+
+    arrangements_count = prod(arrangements)
 
     return arrangements_count
 
