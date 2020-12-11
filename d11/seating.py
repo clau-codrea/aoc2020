@@ -23,7 +23,7 @@ def parse(seating_file):
     return seating_area
 
 
-def get_adjacent(row, column, seating_area):
+def get_adjacent(initial_row, initial_column, seating_area):
     dimensions = (len(seating_area), len(seating_area[0]))
     adjacent = []
 
@@ -31,12 +31,25 @@ def get_adjacent(row, column, seating_area):
         for column_offset in (-1, 0, 1):
             if row_offset == column_offset == 0:
                 continue
-            row_index, column_index = row + row_offset, column + column_offset
-            if row_index < 0 or row_index > 9 or column_index < 0 or column_index > 9:
-                continue
-            element = seating_area[row_index][column_index]
-            if element != FLOOR:
-                adjacent.append(element)
+
+            seen = False
+            row_index, column_index = initial_row, initial_column
+            while not seen:
+                row_index += row_offset
+                column_index += column_offset
+                if (
+                    row_index < 0
+                    or row_index >= dimensions[0]
+                    or column_index < 0
+                    or column_index >= dimensions[1]
+                ):
+                    seen = True
+                    continue
+
+                element = seating_area[row_index][column_index]
+                if element != FLOOR:
+                    adjacent.append(element)
+                    seen = True
 
     return adjacent
 
@@ -49,8 +62,8 @@ def next_state(current, adjacent_seats):
     ):
         state = OCCUPIED
     elif state == OCCUPIED:
-        adjacent_count = sum((1 if state == seat else 0) for seat in adjacent_seats)
-        if adjacent_count >= 4:
+        adjacent_count = sum((1 if seat == OCCUPIED else 0) for seat in adjacent_seats)
+        if adjacent_count >= 5:
             state = EMPTY
 
     return state
