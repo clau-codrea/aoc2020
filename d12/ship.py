@@ -2,73 +2,68 @@ import sys
 import re
 
 
-CARDINAL_POINTS = ('N', 'E', 'S', 'W')
+CARDINAL_POINTS = ("N", "E", "S", "W")
 
 
 def read_instructions(instructions_file):
-    instructions_pattern = re.compile('\A([NSEWLRF])([1-9][0-9]*)\s\Z')
+    instructions_pattern = re.compile("\A([NSEWLRF])([1-9][0-9]*)\s\Z")
 
     return [instructions_pattern.match(line).groups() for line in instructions_file]
 
 
-def process_instruction(instruction, initial_position, initial_orientation):
+def process_instruction(instruction, initial_ship_position, initial_waypoint_position):
     def process_cardinal_point(instruction):
-        if instruction[0] == 'E':
+        if instruction[0] == "E":
             return 1, 0
-        elif instruction[0] == 'W':
+        elif instruction[0] == "W":
             return -1, 0
-        elif instruction[0] == 'N':
+        elif instruction[0] == "N":
             return 1, 1
         else:
             return -1, 1
 
-
-    def process_orientation(instruction):
-        offset = int(instruction[1]) // 90
-        if instruction[0] == 'L':
-            return -1, offset
+    def process_orientation(instruction, waypoint_position):
+        if instruction[0] == "R":
+            x = waypoint_position[1]
+            y = -waypoint_position[0]
         else:
-            return 1, offset
+            x = -waypoint_position[1]
+            y = waypoint_position[0]
 
-    
-    x, y = initial_position
-    orientation = initial_orientation
+        return (x, y)
 
-    if instruction[0] in ('L', 'R'):
-        coefficient, offset = process_orientation(instruction)
-        index = CARDINAL_POINTS.index(initial_orientation)
+    ship_x, ship_y = initial_ship_position
+    waypoint_x, waypoint_y = initial_waypoint_position
 
-        while offset:
-            index += coefficient
-            if index == -1:
-                index = len(CARDINAL_POINTS) - 1
-            elif index == len(CARDINAL_POINTS):
-                index = 0
-
-            offset -= 1
-
-        orientation = CARDINAL_POINTS[index]
-    else:
-        if instruction[0] == 'F':
-            instruction = (orientation, instruction[1])
-       
+    if instruction[0] in ("L", "R"):
+        for _ in range(int(instruction[1]) // 90):
+            waypoint_x, waypoint_y = process_orientation(
+                instruction, (waypoint_x, waypoint_y)
+            )
+    elif instruction[0] in CARDINAL_POINTS:
         coefficient, axis = process_cardinal_point(instruction)
         increment = coefficient * int(instruction[1])
         if axis:
-            y += increment
+            waypoint_y += increment
         else:
-            x += increment
+            waypoint_x += increment
+    else:
+        ship_x += int(instruction[1]) * waypoint_x
+        ship_y += int(instruction[1]) * waypoint_y
 
-    return (x, y), orientation
+    return (ship_x, ship_y), (waypoint_x, waypoint_y)
 
 
 def follow(instructions):
-    position = (0, 0)
-    orientation = 'E'
+    ship_position = (0, 0)
+    waypoint_position = (10, 1)
 
     for instruction in instructions:
-        position, orientation = process_instruction(instruction, position, orientation)
-    return position
+        ship_position, waypoint_position = process_instruction(
+            instruction, ship_position, waypoint_position
+        )
+        print(ship_position, waypoint_position)
+    return ship_position
 
 
 def compute_manhattan_distance(position):
@@ -82,8 +77,8 @@ def main(instructions_file_path):
     position = follow(instructions)
     manhattan_distance = compute_manhattan_distance(position)
 
-    print(f'md: {manhattan_distance}')
+    print(f"md: {manhattan_distance}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv[1])
