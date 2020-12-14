@@ -41,8 +41,8 @@ def process_instruction(instruction, initial_position, initial_orientation):
         while offset:
             index += coefficient
             if index == -1:
-                index = len(CARDINAL_POINTS)
-            if index == len(CARDINAL_POINTS):
+                index = len(CARDINAL_POINTS) - 1
+            elif index == len(CARDINAL_POINTS):
                 index = 0
 
             offset -= 1
