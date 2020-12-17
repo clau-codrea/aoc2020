@@ -53,31 +53,93 @@ def valid(value, rules):
     return False
 
 
-def scan_ticket(ticket, rules):
-    errors = 0
-
+def scan_ticket(ticket, rules, positions):
     for value in ticket:
         if not valid(value, rules):
-            errors += value
+            return
 
-    return errors
+    for rule in rules:
+        first_range, second_range = rules[rule]
+
+        for index, value in enumerate(ticket):
+            if not (
+                first_range[0] <= value <= first_range[1]
+                or second_range[0] <= value <= second_range[1]
+            ):
+                positions[rule].add(index)
 
 
-def scan_errors(tickets, rules):
-    total_errors = 0
+def scan_tickets(tickets, rules):
+    positions = {rule_name: set() for rule_name in rules.keys()}
     for ticket in tickets:
-        ticket_errors = scan_ticket(ticket, rules)
-        total_errors += ticket_errors
+        scan_ticket(ticket, rules, positions)
 
-    return total_errors
+    return positions
+
+
+def format_fields(invalid_positions):
+    positions = {}
+    for field in invalid_positions:
+        positions[field] = set(range(len(invalid_positions))) - invalid_positions[field]
+
+    fields = {}
+    for field in positions:
+        for position in positions[field]:
+            if position in fields:
+                fields[position].add(field)
+            else:
+                fields[position] = {field}
+
+    return fields
+
+
+def find_positions(positions):
+    solution = [None for _ in range(len(positions))]
+    final = None
+
+    def is_candidate(index):
+        for field in solution[:index]:
+            if field == solution[index]:
+                return False
+
+        return True
+
+    def backtrack(index):
+        if index == len(solution):
+            if is_candidate(len(solution) - 1):
+                nonlocal final
+                final = solution[:]
+            return
+
+        for field in positions[index]:
+            solution[index] = field
+            if is_candidate(index):
+                backtrack(index + 1)
+
+    backtrack(0)
+
+    return final
+
+
+def compute_departures_product(ticket, ordered_fields):
+    product = 1
+
+    for index, field in enumerate(ordered_fields):
+        if "departure" in field:
+            product *= ticket[index]
+
+    return product
 
 
 def main(tickets_file_path):
     with open(tickets_file_path) as tickets_file:
         rules, my_ticket, nearby_tickets = parse(tickets_file)
 
-    errors = scan_errors(nearby_tickets, rules)
-    print(f"errors: {errors}")
+    invalid_positions = scan_tickets(nearby_tickets, rules)
+    fields = format_fields(invalid_positions)
+    ordered_fields = find_positions(fields)
+    result = compute_departures_product(my_ticket, ordered_fields)
+    print(f"result: {result}")
 
 
 if __name__ == "__main__":
