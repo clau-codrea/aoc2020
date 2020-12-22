@@ -40,24 +40,54 @@ def is_number(term):
         return True
 
 
-def compute(expression):
-    term, current_position = next_token(expression, 0)
-    if is_number(term):
-        value = int(term)
-    else:
-        value = compute(term)
-
+def is_priority_operator(expression, current_position):
     while current_position < len(expression):
+        current_character = expression[current_position]
+        if current_character == "+":
+            return True
+        elif current_character == "*":
+            return False
+
+        current_position += 1
+
+    return False
+
+
+def compute(expression):
+    factor, current_position = next_token(expression, 0)
+    if is_number(factor):
+        value = int(factor)
+    else:
+        value = compute(factor)
+    while is_priority_operator(expression, current_position):
         op, current_position = next_token(expression, current_position)
         term, current_position = next_token(expression, current_position)
         if is_number(term):
-            second_value = int(term)
+            term_value = int(term)
         else:
-            second_value = compute(term)
-        if op == "+":
-            value += second_value
+            term_value = compute(term)
+
+        value += term_value
+
+    while current_position < len(expression):
+        op, current_position = next_token(expression, current_position)
+        factor, current_position = next_token(expression, current_position)
+        if is_number(factor):
+            second_value = int(factor)
         else:
-            value *= second_value
+            second_value = compute(factor)
+
+        while is_priority_operator(expression, current_position):
+            op, current_position = next_token(expression, current_position)
+            term, current_position = next_token(expression, current_position)
+            if is_number(term):
+                term_value = int(term)
+            else:
+                term_value = compute(term)
+
+            second_value += term_value
+
+        value *= second_value
 
     return value
 
