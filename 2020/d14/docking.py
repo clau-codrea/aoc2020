@@ -23,21 +23,45 @@ def to_decimal(value):
     return decimal_value
 
 
-def apply_mask(value, mask):
-    actual_value = ""
-    for value_symbol, mask_symbol in zip(value, mask):
-        if mask_symbol != "X":
-            actual_value += mask_symbol
+def apply_mask(memory_location, mask):
+    actual_memory_location = ""
+    for memory_symbol, mask_symbol in zip(memory_location, mask):
+        if mask_symbol in ("X", "1"):
+            actual_memory_location += mask_symbol
         else:
-            actual_value += value_symbol
+            actual_memory_location += memory_symbol
 
-    return actual_value
+    return actual_memory_location
 
 
-def update_memory(memory, memory_location, memory_value, mask):
-    binary_value = to_binary(memory_value)
-    actual_value = apply_mask(binary_value, mask)
-    memory[memory_location] = to_decimal(actual_value)
+def generate_memory_locations(initial_memory_location):
+    memory_locations = [initial_memory_location]
+
+    done = False
+    while not done:
+        generated_memory_locations = []
+        for memory_location in memory_locations:
+            try:
+                index = memory_location.index("X")
+            except ValueError:
+                done = True
+            else:
+                variants = [
+                    memory_location[:index] + symbol + memory_location[index + 1 :]
+                    for symbol in ("0", "1")
+                ]
+                generated_memory_locations.extend(variants)
+
+                memory_locations = generated_memory_locations[:]
+
+    return memory_locations
+
+
+def update_memory(memory, memory_locations, memory_value):
+    for memory_location in (to_decimal(x) for x in memory_locations):
+        memory[memory_location] = memory_value
+
+    return memory
 
 
 def process(memory_file):
@@ -56,7 +80,10 @@ def process(memory_file):
         else:
             memory_match = memory_pattern.match(line)
             memory_location, memory_value = (int(x) for x in memory_match.groups())
-            update_memory(memory, memory_location, memory_value, mask)
+            binary_memory_location = to_binary(memory_location)
+            actual_memory_location = apply_mask(binary_memory_location, mask)
+            memory_locations = generate_memory_locations(actual_memory_location)
+            memory = update_memory(memory, memory_locations, memory_value)
 
     return memory
 
