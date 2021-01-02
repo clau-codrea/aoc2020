@@ -1,74 +1,81 @@
 import sys
 import re
 
+from itertools import product
+
 
 TERMINALS = ("a", "b")
+START = 0
 
 
 def read(rules_file):
     reading_messages = False
 
-    rules, messages = {}, []
+    rules, messages, complete, todo = {}, set(), {}, set()
     for line in rules_file:
         line = line.rstrip()
 
         if not line:
             reading_messages = True
         elif reading_messages:
-            messages.append(line)
+            messages.add(line)
         else:
             rule_name, rule = line.split(": ")
             rule = rule.strip('"')
             options = rule.split(" | ")
-            formatted_rule = []
-            for option in options:
-                references = [
-                    int(x) if x not in TERMINALS else x for x in option.split()
-                ]
-                formatted_rule.append(references)
-            rules[int(rule_name)] = formatted_rule
+            if len(options) == 1 and options[0] in TERMINALS:
+                complete[int(rule_name)] = set(options[0])
+            else:
+                formatted_rule = []
+                for option in options:
+                    references = [int(x) for x in option.split()]
+                    formatted_rule.append(references)
+                rules[int(rule_name)] = formatted_rule
+                todo.add(int(rule_name))
 
-    return rules, messages
+    del rules[8]
+    todo.remove(8)
+    del rules[11]
+    todo.remove(11)
 
+    rules[0] = [[42, 42, 31]]
 
-def all_words(grammar, start):
-    words = set()
-
-    candidates = [([start], 0)]
-
-    while candidates:
-        candidate, index = candidates.pop()
-
-        if index >= len(candidate):
-            if "".join(candidate) not in words:
-                words.add("".join(candidate))
-        else:
-            options = grammar[candidate[index]]
-            for option in options:
-                new_candidate = candidate[:index] + option + candidate[index + 1 :]
-                new_index = index + 1 if option[0] in TERMINALS else index
-                candidates.append((new_candidate, new_index))
-
-    return words
+    return rules, messages, complete, todo
 
 
-def count_valid_messages(messages, words):
-    count = 0
+def can_complete(rule, grammar, completed):
+    for option in grammar[rule]:
+        for subrule in option:
+            if subrule not in completed:
+                return False
 
-    for message in messages:
-        if message in words:
-            count += 1
+    return True
 
-    return count
+
+def complete(rule, grammar, completed):
+    completed[rule] = set()
+    for option in grammar[rule]:
+        completed_subrules = [completed[subrule] for subrule in option]
+        completed_option = list(product(*completed_subrules))
+        completed[rule].update("".join(x) for x in completed_option)
+
+
+def complete_all(grammar, todo, completed):
+    while START in todo:
+        for rule in todo.copy():
+            if can_complete(rule, grammar, completed):
+                complete(rule, grammar, completed)
+                todo.remove(rule)
 
 
 def main(rules_file_path):
     with open(rules_file_path) as rules_file:
-        grammar, messages = read(rules_file)
+        grammar, messages, completed, todo = read(rules_file)
 
-    words = all_words(grammar, 0)
+    complete_all(grammar, todo, completed)
 
-    valid_count = count_valid_messages(messages, words)
+    valid_count = len(completed[START] & messages)
+
     print(f"count: {valid_count}")
 
 
